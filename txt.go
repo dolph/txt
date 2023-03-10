@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
@@ -19,8 +20,22 @@ func main() {
 	params.SetFrom(from)
 	params.SetBody(strings.Join(os.Args[1:], " "))
 
-	_, err := client.ApiV2010.CreateMessage(params)
-	if err != nil {
-		fmt.Println(err.Error())
+	retries := 0
+	for {
+		// Send it!
+		_, err := client.ApiV2010.CreateMessage(params)
+		if err != nil {
+			// Log an error message and count the attempt
+			fmt.Println(err.Error())
+			if retries >= 3 {
+				// Give up
+				os.Exit(1)
+			}
+			retries += 1
+			time.Sleep(time.Duration(retries) * time.Second)
+		} else {
+			// Required to break the retry loop
+			os.Exit(0)
+		}
 	}
 }
